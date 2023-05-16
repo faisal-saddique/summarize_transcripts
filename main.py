@@ -5,6 +5,9 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain import OpenAI
 from langchain.chains.summarize import load_summarize_chain
 from langchain import PromptTemplate
+from dotenv import load_dotenv
+
+load_dotenv()
 
 st.set_page_config(layout="wide")
 st.title("Summarize transcripts")
