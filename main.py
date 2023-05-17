@@ -51,7 +51,7 @@ if path or text_input:
         doc = Document(page_content=text_input)
         uploaded_files.append(doc)
 
-    chunk_size = st.number_input("Please enter the chunk size you want to keep for text splitting:",min_value=500)
+    chunk_size = st.number_input("Please enter the chunk size you want to keep for text splitting:",min_value=1000)
 
     # st.write(uploaded_files)
 
