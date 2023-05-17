@@ -14,7 +14,7 @@ st.title("Summarize transcripts")
 
 openai_api_key = os.environ["OPENAI_API_KEY"]
 
-llm = OpenAI(model='text-davinci-003',temperature=.3, openai_api_key=openai_api_key)
+llm = OpenAI(temperature=.3, openai_api_key=openai_api_key)
 
 accepted_file_extensions = ['.txt']
 
