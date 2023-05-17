@@ -14,7 +14,7 @@ st.title("Summarize transcripts")
 
 openai_api_key = os.environ["OPENAI_API_KEY"]
 
-llm = OpenAI(model='text-davinci-003',temperature=0, openai_api_key=openai_api_key)
+llm = OpenAI(model='text-davinci-003',temperature=.3, openai_api_key=openai_api_key)
 
 accepted_file_extensions = ['.txt']
 
@@ -51,61 +51,68 @@ if path or text_input:
         doc = Document(page_content=text_input)
         uploaded_files.append(doc)
 
+    chunk_size = st.number_input("Please enter the chunk size you want to keep for text splitting:",min_value=500)
+
     # st.write(uploaded_files)
 
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=400, 
-        chunk_overlap=5,
-        # separators=["---"]
-        )
+    if chunk_size:
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size, 
+            chunk_overlap=5,
+            # separators=["---"]
+            )
 
-    docs = text_splitter.create_documents([item.page_content for item in uploaded_files])
-    
-    # docs = docs[40:50]
+        docs = text_splitter.create_documents([item.page_content for item in uploaded_files])
+        
+        # docs = docs[40:50]
 
-    st.success (f"Now we have {len(docs)} documents and the first one has {llm.get_num_tokens(docs[0].page_content)} tokens")
+        st.success(f"Now we have {len(docs)} documents and the first one has {llm.get_num_tokens(docs[0].page_content)} tokens")
 
-    # st.write(docs)
+        # st.write(docs)
 
-    map_prompt = """
-    Write a summary in markdown of the following by strictly including these sections in it:
-        1) Name all participants and their titles if available in the first section. e.g. John (Team lead)
-        2) Show the contribution of each participant in the conversation as percentage. e.g John (20%). 
-        3) Only Summarise the discussion from the moment the words "next step" are mentioned.
-        4) Summarise the prospects key challenges etc.:
+        key_parameters = st.text_area("Please enter the key parameters that you want to consider while summarizing:",height=300)
 
-    "{text}"
+        if key_parameters:
+            parameters = key_parameters.split('\n')
+                
+            map_prompt = """
+            Write a summary in markdown of the following text enclosed in triple backticks (```) by strictly including these sections in it:
+            """        
+            for param in parameters:
+                map_prompt += f"\n{param}"
+                    
+            map_prompt += """\n\n```{text}```\n\nSUMMARY:"""
+            
 
-    SUMMARY:
-    """
+            st.write("Updated prompt looks like:")
+            st.text(map_prompt)
 
-    # map_prompt = """
-    # Write a concise summary of the following:
-    # "{text}"
-    # CONCISE SUMMARY:
-    # """
+            # map_prompt = """
+            # Write a concise summary of the following:
+            # "{text}"
+            # CONCISE SUMMARY:
+            # """
 
-    map_prompt_template = PromptTemplate(template=map_prompt, input_variables=["text"])
+            map_prompt_template = PromptTemplate(template=map_prompt, input_variables=["text"])
 
-    combine_prompt = """
-    Write a summary in Bulletpoints of the following by strictly including these sections in it:
-        1) Name all participants and their titles if available in the first section. e.g. John (Team lead)
-        2) Average the contribution of each participant in the conversation as percentage. e.g John (20%). 
-        3) Summary
-    ```{text}```
-    BULLET POINT SUMMARY:
-    """
+            combine_prompt = """
+            Write a summary in bullet points of the following text enclosed in triple backticks (```) by making bullets of these parameters:
+            """
+            for param in parameters:
+                combine_prompt += f"\n{param}"
 
-    combine_prompt_template = PromptTemplate(template=combine_prompt, input_variables=["text"])
+            combine_prompt += """\n\n```{text}```\n\nBULLET POINT SUMMARY:"""
 
-    summary_chain = load_summarize_chain(llm=llm,
-                                        chain_type='map_reduce',
-                                        map_prompt=map_prompt_template,
-                                        combine_prompt=combine_prompt_template,
-                                        verbose=True
-                                        )
-    
-    if st.button("Summarize"):
-        output = summary_chain.run(docs)
+            combine_prompt_template = PromptTemplate(template=combine_prompt, input_variables=["text"])
 
-        st.success(f"Summary using map reduce method is: {output}")
+            summary_chain = load_summarize_chain(llm=llm,
+                                                chain_type='map_reduce',
+                                                map_prompt=map_prompt_template,
+                                                combine_prompt=combine_prompt_template,
+                                                verbose=True
+                                                )
+            
+            if st.button("Summarize"):
+                output = summary_chain.run(docs)
+
+                st.success(f"Summary using map reduce method is: {output}")
